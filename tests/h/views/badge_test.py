@@ -26,8 +26,47 @@ def test_badge_returns_number_from_search(models, search_run):
 
 
 @badge_fixtures
+def test_badge_returns_number_from_search_if_unauth_user(models, search_run):
+    request = mock.Mock(params={'uri': 'test_uri'})
+    request.user = None
+    models.Blocklist.is_blocked.return_value = False
+    search_run.return_value = mock.Mock(total=29)
+
+    result = badge(request)
+
+    search_run.assert_called_once_with({'uri': 'test_uri', 'limit': 0})
+    assert result == {'total': 29}
+
+
+@badge_fixtures
+def test_badge_returns_0_from_search_if_unauth_user(models, search_run):
+    request = mock.Mock(params={'uri': 'test_uri'})
+    request.user = None
+    models.Blocklist.is_blocked.return_value = False
+    search_run.return_value = mock.Mock(total=0)
+
+    result = badge(request)
+
+    search_run.assert_called_once_with({'uri': 'test_uri', 'limit': 0})
+    assert result == {'total': 0}
+
+
+@badge_fixtures
 def test_badge_returns_0_if_blocked(models, search_run):
     request = mock.Mock(params={'uri': 'test_uri'})
+    models.Blocklist.is_blocked.return_value = True
+    search_run.return_value = {'total': 29}
+
+    result = badge(request)
+
+    assert not search_run.called
+    assert result == {'total': 0}
+
+
+@badge_fixtures
+def test_badge_returns_0_if_blocked_and_unauth_user(models, search_run):
+    request = mock.Mock(params={'uri': 'test_uri'})
+    request.user = None
     models.Blocklist.is_blocked.return_value = True
     search_run.return_value = {'total': 29}
 
